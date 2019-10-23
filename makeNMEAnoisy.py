@@ -10,13 +10,13 @@ $GPRMC is required for Google Earth. GE is also checking CRC
 
 NOTE:
 
-$GPGGA lat, long is in   DDMM.MMMMM (to 2cm level)
+$GPGGA lat, long is in   DDMM.MMMMM (2cm accuracy)
 talker ID: $GP - GPS, $GL - GLO, $GN - combined
 
 
 WARNING:
 
-This code is only valid for Europe (lat,lon conversion)
+This code is only valid for Europe
 In GST
  residuals are hardcoded to pseudorange residuals
  Error ellipse orientation is assumed to be ~75-85deg from north
@@ -56,8 +56,6 @@ def calculateNMEAchecksum(NMEAstring):
 
     return calc_cksum
 
-
-
 '''
 wrapper for NMEA string CRC corrections
 IN: full NMEAstr
@@ -87,7 +85,7 @@ def convertDDMMtoMM(coordinateString):
 
 
 '''
-IN: MM.MMMMMMM
+IN: MM.MMMMM
 OUT: str DDMM.MMMMM
 3rd decimal place is 2m, 5th is 2cm, 6th is 2mm
 3176.546 == '5256.54600'
@@ -102,9 +100,30 @@ def convertMMtoDDMM(coordinateVal):
 
 
 '''
+Calculate distance for lat,lon,ht at given lat
+that can be used to estimate how distance on the sphere [m,m,m] translate into
+lat,lon,ht in [min,min,m]
+earthRadius - as defined in ITRF2014
+IN: lat of area under consideration location [deg]
+OUT: np array of scale: [m,m,m]->[min,min,m]
+
+NOTE: you only need latitude of Location, it works for small area only
+'''
+def calcPlanarScale(latOfLocation,earthRadius=6378137.0):
+
+  earthCircle = 2 * earthRadius * np.pi
+  latLenght = earthCircle / (60*360)  #in [min] !
+  scaleToPlanar = 1/np.array([latLenght * np.cos(latOfLocation * np.pi / 180),latLenght, 1])
+
+  return scaleToPlanar
+
+
+####ERROR CALCULUS
+
+'''
 translate noise level to precision model in [m]
 N-S lat (\Phi)
-E-W lon (\LambnoiseLevelda)
+E-W lon (\Lambda)
 
 OUT:  [precLat,precLon,precHt]
 '''
@@ -121,23 +140,27 @@ def precModel(noiseLevel):
 	return precVec
 
 '''
-create error at 68% CEP
-TODO: check the naming convencion with vanDilligen
-TODO: create more advanced model with offsets
+create error at 1sigma (68% distribution)
+check <https://www.gpsworld.com/gpsgnss-accuracy-lies-damn-lies-and-statistics-1134/>
+
 IN:  [precLat,precLon,precHt] [m]
 OUT: [errLat,errLon,errHt] [min,min,m]
 
 TODO: consider more advanced error model
+TODO: check the naming convencion with vanDilligen
+TODO: create more advanced model with offsets
 '''
-def createErrors(precModelArray,probability=0.68):
+def createErrors(precModelArray,latOfLocation,probability=0.68):
 	precModelArray = np.array(precModelArray)
 	#baloon prec to acc and split around 0
 	accCoefficient = 1+(1-probability)/2
 	accModel = accCoefficient*precModelArray/2
 	errModel =[uniform(-acc,acc) for acc in accModel] #in m
 
-	errModel = np.array(errModel)*[1/1200,1/1800,1] #[min,min,m]
-
+	# errModel = np.array(errModel)*[1/1200,1/1800,1] #[min,min,m]
+	errModel = np.array(errModel)*calcPlanarScale(latOfLocation) #[min,min,m]
+	print(test1,test2)
+	breakpoint()
 
 	return errModel
 
@@ -149,19 +172,7 @@ OUT: changed string
 
 NOTE: code is only valid for EU
 I assume N/S orientation of Error Elipse and that it is equal to lat,lon
-
-0  Message ID \$GPGST
-1  UTC of position fix
-2  RMS value of the pseudorange or carrier phase (RTK/PPP) residuals
-3  Error ellipse semi-major axis 1 sigma error, in meters
-4  Error ellipse semi-minor axis 1 sigma error, in meters
-5  Error ellipse orientation, degrees from true north
-6  Latitude 1 sigma error, in meters
-7  Longitude 1 sigma error, in meters
-8  Height 1 sigma error, in meters
-9  The checksum data, always begins with *
 '''
-
 def createGST(UTC,precModel):
 
 	# TODO: set elipse erorr orient 80+-5
@@ -174,19 +185,13 @@ def createGST(UTC,precModel):
 	return GSTstring
 
 
+
+####I/O FUNCTIONS
+
+
 '''
 alter RMC to match GGA
 
-0	Message ID $GPRMC
-1	UTC of position fix
-2	Status A=active or V=void
-3	Latitude
-4	Longitude
-5	Speed over the ground in knots
-6	Track angle in degrees (True)
-7	Date
-8	Magnetic variation in degrees
-9	The checksum data, always begins with *
 '''
 def changeRMC(RMCstring,GGAdata):
 
@@ -204,27 +209,6 @@ read GGA and alter lat,lon,ht by adding noise,
 IN: GGA string
 OUT: changed GGA string,GGAdata(list)
 
-0	Message ID $GPGGA
-1	UTC of position fix
-2	Latitude
-3	Direction of latitude: N: North,S: South
-4	Longitude
-5	Direction of longitude: E: East,W: West
-6	GPS Quality indicator:
-	0: Fix not valid
-	1: GPS fix
-	2: Differential GPS fix, OmniSTAR VBS
-	4: Real-Time Kinematic, fixed integers
-	5: Real-Time Kinematic, float integers, OmniSTAR XP/HP or Location RTK
-7	Number of SVs in use, range from 00 through to 24+
-8	HDOP
-9	Orthometric height (MSL reference)
-10	M: unit of measure for orthometric height is meters
-11	Geoid separation
-12	M: geoid separation measured in meters
-13	Age of differential GPS data record, Type 1 or Type 9. Null field when DGPS is not used.
-14	Reference station ID, range 0000-4095. A null field when any reference station ID is selected and no corrections are received1.
-15	The checksum data, always begins with *
 '''
 def changeGGA(line,precModelArray):
 
@@ -235,7 +219,8 @@ def changeGGA(line,precModelArray):
 	coords = [*latlon,float(data[9])] #lat,lon,ht
 
 	#add noise to value
-	noise = createErrors(precModelArray)
+	lat = coords[0]/60
+	noise = createErrors(precModelArray,lat)
 	coords = np.array(coords) + noise
 
 	# data[2],data[4],data[9] = [f'{item:.2f}' for item in coords]
@@ -251,10 +236,15 @@ def changeGGA(line,precModelArray):
 
 
 '''
-read nmea
-create output file with noise added and GST string
+read NMEA file (GGA,RMC)
+add noise, create GST string
+get RMC and match GST - needed for Google Earth
 
-I assume that GGA string always comes before GPRMC
+IN: NMEA file, noise level [m]
+OUT: N/A
+
+NOTE:
+I assume that GGA string always comes before GPRMC (!)
 '''
 def createNoisyFile(file,noiseLevel):
 
@@ -266,7 +256,7 @@ def createNoisyFile(file,noiseLevel):
 			if line.find('$GPGGA')==0: #find at start of line
 				precModelArray = precModel(noiseLevel)
 				NMEAstr,GGAdata = changeGGA(line,precModelArray)
-				#add GST code
+				#add GST
 				UTC = GGAdata[1]
 				NMEAstr =  f'{NMEAstr}{createGST(UTC,precModelArray)}\n'
 				outF.write(NMEAstr)
@@ -274,7 +264,7 @@ def createNoisyFile(file,noiseLevel):
 				str = changeRMC(line,GGAdata)
 				outF.write(str)
 	outF.close()
-	return GGAdata
+
 
 
 
@@ -283,7 +273,7 @@ def createNoisyFile(file,noiseLevel):
 ###################
 if __name__ == "__main__":
 
-    allFiles = glob.glob('*.nmea') #read all files
+    allFiles = glob.glob('*.nmea')
 
     for file in allFiles:
         createNoisyFile(file,5)
