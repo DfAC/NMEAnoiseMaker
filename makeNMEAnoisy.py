@@ -147,8 +147,6 @@ IN:  [precLat,precLon,precHt] [m]
 OUT: [errLat,errLon,errHt] [min,min,m]
 
 TODO: consider more advanced error model
-TODO: check the naming convencion with vanDilligen
-TODO: create more advanced model with offsets
 '''
 def createErrors(precModelArray,latOfLocation,probability=0.68):
 	precModelArray = np.array(precModelArray)
