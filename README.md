@@ -18,7 +18,7 @@ LKB 2019(c)
 
 ### GGA
 
-
+```
 0	Message ID $GPGGA
 1	UTC of position fix
 2	Latitude
@@ -40,9 +40,11 @@ LKB 2019(c)
 13	Age of differential GPS data record, Type 1 or Type 9. Null field when DGPS is not used.
 14	Reference station ID, range 0000-4095. A null field when any reference station ID is selected and no corrections are received1.
 15	The checksum data, always begins with *
+```
 
 ### GST
 
+```
 0  Message ID $GPGST
 1  UTC of position fix
 2  RMS value of the pseudorange or carrier phase (RTK/PPP) residuals
@@ -53,9 +55,11 @@ LKB 2019(c)
 7  Longitude 1 sigma error, in meters
 8  Height 1 sigma error, in meters
 9  The checksum data, always begins with *
+```
 
 ### RMC
 
+```
 0	Message ID $GPRMC
 1	UTC of position fix
 2	Status A=active or V=void
@@ -66,3 +70,4 @@ LKB 2019(c)
 7	Date
 8	Magnetic variation in degrees
 9	The checksum data, always begins with *
+```
