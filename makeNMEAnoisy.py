@@ -69,18 +69,22 @@ def correctNMEAcrc(NMEAstring):
 	return correctNMEA
 
 '''
-IN: str DDMM.MMMMMMM
+convert from NMEA DDMM to minutes only for calculation
+
+IN: str (D)DDMM.xx
 OUT: MM.MMMMMMM
+
+
 '5256.546' == 3176.546
 '''
 def convertDDMMtoMM(coordinateString):
 
-	if coordinateString.find('.')==4: #DDMM.MMMMMMM
+	if coordinateString.find('.')==4: #DDMM.xx
 		coord = int(coordinateString[:2])*60+float(coordinateString[2:])
-	elif coordinateString.find('.')==5: #DDDMM.MMMMMMM
+	elif coordinateString.find('.')==5: #DDDMM.xx
 		coord = int(coordinateString[:3])*60+float(coordinateString[3:])
 	else:
-		print(f'ERROR with {coordinateString}')
+		raise ValueError(f'lat,lon is not encoded properly (expected degrees as 2 or 3 digits), got {coordinateString}')
 	return coord
 
 
@@ -95,7 +99,6 @@ def convertMMtoDDMM(coordinateVal):
 
 	DD = floor(coordinateVal/60)
 	MM = coordinateVal-DD*60
-	# breakpoint()
 	return f'{DD:03}{MM:02.5f}'
 
 
@@ -103,7 +106,7 @@ def convertMMtoDDMM(coordinateVal):
 Calculate distance for lat,lon,ht at given lat
 that can be used to estimate how distance on the sphere [m,m,m] translate into
 lat,lon,ht in [min,min,m]
-earthRadius - as defined in ITRF2014
+earthRadius - as defined in ITRF2014 [m]
 IN: lat of area under consideration location [deg]
 OUT: np array of scale: [m,m,m]->[min,min,m]
 
