@@ -194,6 +194,9 @@ def changeRMC(RMCstring,GGAdata):
 	RMCdata = RMCstring.split(",")
 	RMCdata[3],RMCdata[5] = GGAdata[2],GGAdata[4]
 
+	#TODO alter f5,6 accordingly to the noise, 
+	#TODO-7 check f2,f8
+
 	RMCstr = ','.join(RMCdata)
 	RMCstr = correctNMEAcrc(RMCstr)
 
@@ -256,9 +259,9 @@ def createNoisyFile(file,noiseLevel):
 				UTC = GGAdata[1]
 				NMEAstr =  f'{NMEAstr}{createGST(UTC,precModelArray)}\n'
 				outF.write(NMEAstr)
-			# if line.find('$GPRMC')==0: #find at start of line
-			# 	str = changeRMC(line,GGAdata)
-				# outF.write(str)
+			if line.find('$GPRMC')==0: #find at start of line
+				str = changeRMC(line,GGAdata)
+				outF.write(str)
 	outF.close()
 
 

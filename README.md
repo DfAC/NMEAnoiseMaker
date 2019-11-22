@@ -29,7 +29,8 @@ LKB 2019(c)
 * output corrected $GPGGA with correct CRC - `changeGGA()`
 * create $GPGST string based on $GPGGA, with correct CRC - `createGST()`
 * read $GPRMC and match lat,lon with $GPGGA and add correct CRC; rest of the string remain unchanged - `changeRMC()`
-		- this string is optional for GE
+		- this string is critical for GE
+		- I am not altering other information here
 * save everything as new file
 
 
