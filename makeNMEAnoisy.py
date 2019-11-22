@@ -5,26 +5,26 @@ FLAMINGO toolset
 Read NMEA $GPGGA and $GPRMC and adds noise
 Outputs $GPGGA,$GPRMC,$GPGST strings
 
-$GPRMC is required for Google Earth. GE is also checking CRC
+
 
 
 NOTE:
 
 $GPGGA lat, long is in   DDMM.MMMMM (2cm accuracy)
 talker ID: $GP - GPS, $GL - GLO, $GN - combined
+$GPRMC is required for Google Earth. GE is also checking CRC
 
 
-WARNING:
+WARNING: There are a lot of assumptions in the code. It was not fully tested.
 
 This code is only valid for Europe
 In GST
  residuals are hardcoded to pseudorange residuals
- Error ellipse orientation is assumed to be ~75-85deg from north
- (correct in multipath free European locations).
- Folowing same assumptions lat == semi-major and lon == semi-minor
+ Error ellipse orientation is assumed to be ~75-85deg from north (correct in multipath free European locations).
+ Folowing the same assumptions lat == semi-major and lon == semi-minor
 
-There are a lot of assumptions in the code
-It was not fully tested
+
+
 '''
 import numpy as np
 from numpy.random import uniform
@@ -118,7 +118,7 @@ def calcPlanarScale(latOfLocation,earthRadius=6378137.0):
   return scaleToPlanar
 
 
-####ERROR CALCULUS
+#### NOISE CALCULUS
 
 '''
 translate noise level to precision model in [m]
@@ -140,8 +140,8 @@ def precModel(noiseLevel):
 	return precVec
 
 '''
-create error at 1sigma (68% distribution)
-check <https://www.gpsworld.com/gpsgnss-accuracy-lies-damn-lies-and-statistics-1134/>
+create error (noise) at 1sigma (68% distribution) and distribute it to N/E part of ellipse
+for more details check <https://www.gpsworld.com/gpsgnss-accuracy-lies-damn-lies-and-statistics-1134/>
 
 IN:  [precLat,precLon,precHt] [m]
 OUT: [errLat,errLon,errHt] [min,min,m]
@@ -155,10 +155,8 @@ def createErrors(precModelArray,latOfLocation,probability=0.68):
 	accModel = accCoefficient*precModelArray/2
 	errModel =[uniform(-acc,acc) for acc in accModel] #in m
 
-	# errModel = np.array(errModel)*[1/1200,1/1800,1] #[min,min,m]
+	# errModel = np.array(errModel)*[1/1200,1/1800,1] #[min,min,m] TEST FOR UK
 	errModel = np.array(errModel)*calcPlanarScale(latOfLocation) #[min,min,m]
-	print(test1,test2)
-	breakpoint()
 
 	return errModel
 
@@ -258,9 +256,9 @@ def createNoisyFile(file,noiseLevel):
 				UTC = GGAdata[1]
 				NMEAstr =  f'{NMEAstr}{createGST(UTC,precModelArray)}\n'
 				outF.write(NMEAstr)
-			if line.find('$GPRMC')==0: #find at start of line
-				str = changeRMC(line,GGAdata)
-				outF.write(str)
+			# if line.find('$GPRMC')==0: #find at start of line
+			# 	str = changeRMC(line,GGAdata)
+				# outF.write(str)
 	outF.close()
 
 
@@ -271,8 +269,9 @@ def createNoisyFile(file,noiseLevel):
 ###################
 if __name__ == "__main__":
 
-    allFiles = glob.glob('*.nmea')
+	allFiles = glob.glob('.\data\*.nmea')
+	print(allFiles)
 
-    for file in allFiles:
-        createNoisyFile(file,5)
-        createNoisyFile(file,1)
+	for file in allFiles:
+			createNoisyFile(file,5)
+			createNoisyFile(file,1)
