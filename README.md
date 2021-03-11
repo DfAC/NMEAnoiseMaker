@@ -2,7 +2,7 @@
 
 
 This tool is adding artificial noise to NMEA string for equipment testing purpose.
-To generate synthetic NMEA string you can use <nmeagen.org>
+To generate synthetic NMEA string you can use <https://www.nmeagen.org/>
 
 
 
