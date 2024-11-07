@@ -5,9 +5,6 @@ FLAMINGO toolset
 Read NMEA $GPGGA and $GPRMC and adds noise
 Outputs $GPGGA,$GPRMC,$GPGST strings
 
-
-
-
 NOTE:
 
 $GPGGA lat, long is in   DDMM.MMMMM (2cm accuracy)
@@ -17,18 +14,15 @@ $GPRMC is required for Google Earth. GE is also checking CRC
 
 WARNING: There are a lot of assumptions in the code. It was not fully tested.
 
-This code is only valid for Europe
-In GST
+This code is only valid for Europe, given the assumed orientation of error elipse
+In GST string:
  residuals are hardcoded to pseudorange residuals
- Error ellipse orientation is assumed to be ~75-85deg from north (correct in multipath free European locations).
+ Error ellipse orientation is assumed to be ~75-85deg from north (correct in multipath-free European locations).
  Folowing the same assumptions lat == semi-major and lon == semi-minor
-
-
-
 '''
+
 import numpy as np
 from numpy.random import uniform
-
 import glob
 
 ##################
@@ -42,7 +36,7 @@ IN: NMEAstr between $ and * (!)
 OUT:checksum to place after *
 ex'$GPGSV,3,3,10,26,37,134,00,29,25,136,00*76'
 
-code based on <http://code.activestate.com/recipes/576789-nmea-sentence-checksum/>
+code is based on <http://code.activestate.com/recipes/576789-nmea-sentence-checksum/>
 '''
 def calculateNMEAchecksum(NMEAstring):
 
@@ -74,7 +68,6 @@ convert from NMEA DDMM to minutes only for calculation
 IN: str (D)DDMM.xx
 OUT: MM.MMMMMMM
 
-
 '5256.546' == 3176.546
 '''
 def convertDDMMtoMM(coordinateString):
@@ -105,12 +98,13 @@ def convertMMtoDDMM(coordinateVal):
 '''
 Calculate distance for lat,lon,ht at given lat
 that can be used to estimate how distance on the sphere [m,m,m] translate into
-lat,lon,ht in [min,min,m]
+lat,lon,ht [min,min,m]
 earthRadius - as defined in ITRF2014 [m]
 IN: lat of area under consideration location [deg]
 OUT: np array of scale: [m,m,m]->[min,min,m]
 
-NOTE: you only need latitude of Location, it works for small area only
+NOTE: you only need to provide latitude of Location, it works for movement over small distance 
+as otherwise flattenign of the earth affects conversion
 '''
 def calcPlanarScale(latOfLocation,earthRadius=6378137.0):
 
@@ -131,10 +125,10 @@ E-W lon (\Lambda)
 OUT:  [precLat,precLon,precHt]
 '''
 def precModel(noiseLevel):
-	lat_lon_Ratio = 2 #how much each contribure to noise
+	lat_lon_Ratio = 2 #how much each contributes to noise
 	precLon = noiseLevel/np.sqrt(1+lat_lon_Ratio)
 	precLat = np.sqrt(noiseLevel**2-precLon**2)
-	precHt = noiseLevel*4
+	precHt = noiseLevel*4 #height is always less accurate
 
 	precVec  = [precLat,precLon,precHt]
 	precVec = [round(item,2) for item in precVec]
@@ -169,7 +163,7 @@ createGST string
 IN: UTC, preciosnModel
 OUT: changed string
 
-NOTE: code is only valid for EU
+NOTE: code is only valid for Europe (error elipse shape)
 I assume N/S orientation of Error Elipse and that it is equal to lat,lon
 '''
 def createGST(UTC,precModel):
@@ -279,5 +273,5 @@ if __name__ == "__main__":
 	print(allFiles)
 
 	for file in allFiles:
-			createNoisyFile(file,5)
-			createNoisyFile(file,1)
+			createNoisyFile(file,5) #5m error added
+			createNoisyFile(file,1) #1m error added
