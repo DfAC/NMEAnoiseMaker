@@ -1,15 +1,9 @@
-# NMEAnoiseMaker
+# NMEA noise Maker
 
 
 This tool is adding artificial noise to NMEA string for equipment testing purpose.
 To generate synthetic NMEA string you can use <https://www.nmeagen.org/>
 
-
-
-The National Marine Electronics Association (NMEA) has developed the interface specification between various marine electronic navigation equipment that permits to send information to computers and to other marine equipment. The standard is ASCII based and consist of series of predefined strings identifiable by the header.
-
-* official gudelines can be purchased from <https://www.nmea.org/>
-* description of most common geodetic NMEA-0183 strings can be found at <https://www.trimble.com/OEM_ReceiverHelp/V4.44/en/NMEA-0183messages_MessageOverview.html>
 
 LKB 2019(c)
 
@@ -20,21 +14,25 @@ LKB 2019(c)
 * To use code in your project - `from makeNMEAnoisy.py import createNoisyFile`
 
 
-### workflow
+## workflow
 
 `createNoisyFile()` 
 
 * reads $GPGGA
-* create defined noise model `precModel()`
-* output corrected $GPGGA with correct CRC - `changeGGA()`
-* create $GPGST string based on $GPGGA, with correct CRC - `createGST()`
-* read $GPRMC and match lat,lon with $GPGGA and add correct CRC; rest of the string remain unchanged - `changeRMC()`
-		- this string is critical for GE
-		- I am not altering other information here
-* save everything as new file
+* create defined noise model `precModel()`;
+* output corrected $GPGGA with correct CRC - `changeGGA()`;
+* create $GPGST string based on $GPGGA, with corrected CRC (as values have changed) - `createGST()`;
+* read $GPRMC and match lat,lon with $GPGGA and add corrected CRC; rest of the string remain unchanged - `changeRMC()` . This is critical for file to be displayed properly in Google Earth; 
+* save everything as new file.
 
 
 ## NMEA strings 
+
+The National Marine Electronics Association (NMEA) has developed the interface specification between various marine electronic navigation equipment that permits to send information to computers and to other marine equipment. The standard is ASCII based and consist of series of predefined strings identifiable by the header.
+
+* official gudelines can be purchased from <https://www.nmea.org/>
+* description of most common geodetic NMEA-0183 strings can be found at <https://www.trimble.com/OEM_ReceiverHelp/V4.44/en/NMEA-0183messages_MessageOverview.html>
+
 
 ### GGA
 
